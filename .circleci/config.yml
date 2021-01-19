@@ -37,6 +37,7 @@ jobs:
           key: backend-build
       - slack/notify:
           event: fail
+          channel: sabri
           template: basic_fail_1            
 
 workflows:
