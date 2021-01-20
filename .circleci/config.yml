@@ -38,7 +38,35 @@ jobs:
       - slack/notify:
           event: fail
           channel: sabri
-          template: basic_fail_1            
+          template: basic_fail_1
+      
+  test-frontend:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys: [frontend-build]
+      - run:
+          name: Front-end test
+          command: |
+             cd frontend
+             npm i
+             npm run test
+                
+  test-backend:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys: [backend-build]
+      - run:
+          name: Back-end test
+          command: |
+             cd backend
+             npm i
+             npm run test
 
 workflows:
   default:
@@ -46,3 +74,7 @@ workflows:
       - build-frontend
       - build-backend:
           context: slack-secrets
+      - test-frontend:
+          requires: [build-frontend]
+      - test-backend:
+          requires: [build-backend]
