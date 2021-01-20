@@ -134,11 +134,30 @@ jobs:
             aws ec2 describe-instances \
               --filters Name=tag:project,Values=UdaPeople
               --query 'Reservations[*].Instances[*].PublicIpAddress' \
-              --output text >> inventory.txt
+              --output text >> .circleci/ansible/inventory.txt
       - persist_to_workspace:
-          root: ~/
+          root: ansible
           paths:
-            - project/.circleci/ansible/inventory.txt
+            - .circleci/ansible/inventory.txt
+      - destroy-environment
+
+  configure-infrastructure:
+    docker:
+      - image: python:3.7-alpine3.11
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints: ["e4:80:43:71:e2:84:9f:b9:f1:86:74:d9:d8:d8:ce:76"]
+      - attach_workspace:
+          at: /tmp/ansible
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update ansible
+      - run:
+          name: Configure server
+          command: |
+            ansible-playbook -i /tmp/ansible/inventory.txt .circleci/ansible/configure-server.yml
       - destroy-environment
 
 workflows:
@@ -160,3 +179,5 @@ workflows:
           filters:
             branches:
               only: [main]
+      - configure-infrastructure:
+          requires: [deploy-infrastructure]
