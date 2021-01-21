@@ -116,14 +116,14 @@ jobs:
           name: Install required dependencies
           command: |
             yum -y install tar gzip
-      - run:
-          name: Ensure back-end infrastructure exists
-          command: |
-            aws cloudformation deploy \
-              --template-file .circleci/files/backend.yml \
-              --tags project=UdaPeople \
-              --stack-name "backend-${CIRCLE_WORKFLOW_ID}" \
-              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID}"  
+      # - run:
+      #     name: Ensure back-end infrastructure exists
+      #     command: |
+      #       aws cloudformation deploy \
+      #         --template-file .circleci/files/backend.yml \
+      #         --tags project=UdaPeople \
+      #         --stack-name "backend-${CIRCLE_WORKFLOW_ID}" \
+      #         --parameter-overrides ID="${CIRCLE_WORKFLOW_ID}"  
       # - run:
       #     name: Ensure front-end infrastructure exist
       #     command: |
@@ -136,16 +136,17 @@ jobs:
           name: Add back-end ip to ansible inventory
           command: |
             
-            BACKEND_IP=$(aws ec2 describe-instances \
-              --filters Name=tag:project,Values=UdaPeople \
-              --query 'Reservations[*].Instances[*].PublicIpAddress' \
-              --output text)
+            # BACKEND_IP=$(aws ec2 describe-instances \
+            #   --filters Name=tag:project,Values=UdaPeople \
+            #   --query 'Reservations[*].Instances[*].PublicIpAddress' \
+            #   --output text)
             
-            curl -H "Content-Type: text/plain" \
-            -H "token: backend-ip-${CIRCLE_WORKFLOW_ID}" \
-            --request PUT \
-            --data "$BACKEND_IP" https://api.memstash.io/values/backend-ip
+            # curl -H "Content-Type: text/plain" \
+            # -H "token: backend-ip-${CIRCLE_WORKFLOW_ID}" \
+            # --request PUT \
+            # --data "$BACKEND_IP" https://api.memstash.io/values/backend-ip
 
+            BACKEND_IP="35.166.131.74"
             echo $BACKEND_IP >> .circleci/ansible/inventory.txt
 
       - persist_to_workspace:
@@ -256,7 +257,7 @@ jobs:
       - run:
           name: Deploy backend
           command: |
-            ansible-playbook -i /tmp/.circleci/ansible/inventory.txt .circleci\ansible\deploy-backend.yml
+            ansible-playbook -i /tmp/.circleci/ansible/inventory.txt .circleci/ansible/deploy-backend.yml
       # - destroy-environment 
 
 workflows:
@@ -278,8 +279,8 @@ workflows:
       #     filters:
       #       branches:
       #         only: [main]
-      # - configure-infrastructure:
-      #     requires: [deploy-infrastructure]
+      - configure-infrastructure:
+          requires: [deploy-infrastructure]
       # - run-migrations:
       #     requires: [configure-infrastructure] 
       # - deploy-frontend:
