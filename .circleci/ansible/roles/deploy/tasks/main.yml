@@ -13,6 +13,7 @@
 
 - name: Start backend
   shell: |
+    export PARAM=$TYPEORM_HOST
     cd /home/ubuntu
     npm install
     npm run build
