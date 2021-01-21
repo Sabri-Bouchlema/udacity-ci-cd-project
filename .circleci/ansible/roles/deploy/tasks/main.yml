@@ -13,9 +13,6 @@
 
 - name: Start backend
   shell: |
-    export PARAM="{{ lookup('env','TYPEORM_HOST') }}"
-    export PARAM2="aa"
-    echo "{{ lookup('env','A') }}"
     cd /home/ubuntu
     npm install
     npm run build
