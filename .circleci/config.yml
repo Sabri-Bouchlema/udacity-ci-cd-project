@@ -124,14 +124,14 @@ jobs:
               --tags project=UdaPeople \
               --stack-name "backend-${CIRCLE_WORKFLOW_ID}" \
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID}"  
-      - run:
-          name: Ensure front-end infrastructure exist
-          command: |
-            aws cloudformation deploy \
-              --template-file .circleci/files/frontend.yml \
-              --tags project=UdaPeople \
-              --stack-name "frontend-${CIRCLE_WORKFLOW_ID}" \
-              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID}"  
+      # - run:
+      #     name: Ensure front-end infrastructure exist
+      #     command: |
+      #       aws cloudformation deploy \
+      #         --template-file .circleci/files/frontend.yml \
+      #         --tags project=UdaPeople \
+      #         --stack-name "frontend-${CIRCLE_WORKFLOW_ID}" \
+      #         --parameter-overrides ID="${CIRCLE_WORKFLOW_ID}"  
       - run:
           name: Add back-end ip to ansible inventory
           command: |
@@ -231,14 +231,33 @@ jobs:
             BACKEND_IP=$(curl -H "token: backend-ip-${CIRCLE_WORKFLOW_ID}" --request GET https://api.memstash.io/values/backend-ip)
             export API_URL="http://${BACKEND_IP}:3030"
             echo "${API_URL}"
-      # - run:
-      #     name: Deploy frontend objects
-      #     command: |
-      #       cd frontend
-      #       npm i
-      #       npm run build
-      #       aws s3 cp ./dist s3://udapeople-${CIRCLE_WORKFLOW_ID} --recursive
+      - run:
+          name: Deploy frontend objects
+          command: |
+            cd frontend
+            npm i
+            npm run build
+            aws s3 cp ./dist s3://udapeople-${CIRCLE_WORKFLOW_ID} --recursive
       - destroy-environment
+
+  deploy-backend:
+    docker:
+      - image: python:3.7-alpine3.11
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints: ["e4:80:43:71:e2:84:9f:b9:f1:86:74:d9:d8:d8:ce:76"]
+      - attach_workspace:
+          at: /tmp/.circleci/ansible
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update ansible
+      - run:
+          name: Deploy backend
+          command: |
+            ansible-playbook -i /tmp/.circleci/ansible/inventory.txt .circleci\ansible\deploy-backend.yml
+      # - destroy-environment 
 
 workflows:
   default:
@@ -263,5 +282,7 @@ workflows:
       #     requires: [deploy-infrastructure]
       # - run-migrations:
       #     requires: [configure-infrastructure] 
-      - deploy-frontend:
+      # - deploy-frontend:
+      #     requires: [run-migrations]
+      - deploy-backend:
           requires: [deploy-infrastructure]
