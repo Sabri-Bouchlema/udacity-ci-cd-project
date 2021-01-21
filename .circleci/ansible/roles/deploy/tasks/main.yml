@@ -16,5 +16,5 @@
     cd /home/ubuntu
     npm install
     npm run build
-    cd /home/ubuntu 
-    pm2 start npm -- start
+    cd dist  
+    pm2 start main.js
