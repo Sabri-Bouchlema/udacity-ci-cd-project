@@ -135,14 +135,23 @@ jobs:
       - run:
           name: Add back-end ip to ansible inventory
           command: |
-            aws ec2 describe-instances \
+            
+            backendUrl=$(aws ec2 describe-instances \
               --filters Name=tag:project,Values=UdaPeople \
               --query 'Reservations[*].Instances[*].PublicIpAddress' \
-              --output text >> .circleci/ansible/inventory.txt
+              --output text)
+            
+            curl -H "Content-Type: text/plain" \
+            -H "token: backend-url-udapeople-${CIRCLE_WORKFLOW_ID}" \
+            --request PUT \
+            --data "$backendUrl" https://api.memstash.io/values/backendUrl
+
+            echo $backendUrl >> .circleci/ansible/inventory.txt
+
       - persist_to_workspace:
-          root: /tmp/ansible
+          root: .circleci/ansible
           paths:
-            - .circleci/ansible/inventory.txt
+            - inventory.txt
       - destroy-environment
 
   configure-infrastructure:
@@ -153,7 +162,7 @@ jobs:
       - add_ssh_keys:
           fingerprints: ["e4:80:43:71:e2:84:9f:b9:f1:86:74:d9:d8:d8:ce:76"]
       - attach_workspace:
-          at: /tmp/ansible
+          at: /tmp/.circleci/ansible
       - run:
           name: Install dependencies
           command: |
@@ -161,7 +170,7 @@ jobs:
       - run:
           name: Configure server
           command: |
-            ansible-playbook -i /tmp/ansible/inventory.txt .circleci/ansible/configure-server.yml
+            ansible-playbook -i /tmp/.circleci/ansible/inventory.txt .circleci/ansible/configure-server.yml
       - destroy-environment
 
 workflows:
