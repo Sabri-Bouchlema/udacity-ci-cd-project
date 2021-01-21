@@ -4,3 +4,17 @@
   copy:
     src: /root/project/artifact.tar.gz
     dest: /home/ubuntu/artifact.tar.gz
+
+- name: Extract files
+  shell: |
+    cd /home/ubuntu
+    tar xvzf artifact.tar.gz -C .
+    
+
+- name: Start backend
+  shell: |
+    cd /home/ubuntu
+    npm install
+    npm run build
+    cd /home/ubuntu 
+    pm2 start npm -- start
