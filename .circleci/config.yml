@@ -136,17 +136,17 @@ jobs:
           name: Add back-end ip to ansible inventory
           command: |
             
-            backendUrl=$(aws ec2 describe-instances \
+            BACKEND_IP=$(aws ec2 describe-instances \
               --filters Name=tag:project,Values=UdaPeople \
               --query 'Reservations[*].Instances[*].PublicIpAddress' \
               --output text)
             
             curl -H "Content-Type: text/plain" \
-            -H "token: backend-url-udapeople-${CIRCLE_WORKFLOW_ID}" \
+            -H "token: backend-ip-${CIRCLE_WORKFLOW_ID}" \
             --request PUT \
-            --data "$backendUrl" https://api.memstash.io/values/backendUrl
+            --data "$BACKEND_IP" https://api.memstash.io/values/backend-ip
 
-            echo $backendUrl >> .circleci/ansible/inventory.txt
+            echo $BACKEND_IP >> .circleci/ansible/inventory.txt
 
       - persist_to_workspace:
           root: .circleci/ansible
@@ -212,12 +212,38 @@ jobs:
             --data "$migrationResult" https://api.memstash.io/values/migrationResult
       - destroy-environment
 
+  deploy-frontend:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - restore_cache:
+          keys: [frontend-build]
+      - run:
+          name: Install dependencies
+          command: |
+            yum -y install nodejs
+      - run:
+          name: Get backend url
+          command: |
+            BACKEND_IP=$(curl -H "token: backend-ip-${CIRCLE_WORKFLOW_ID}" --request GET https://api.memstash.io/values/backend-ip)
+            export API_URL="http://${BACKEND_IP}:3030"
+            echo "${API_URL}"
+      - run:
+          name: Deploy frontend objects
+          command: |
+            cd frontend
+            npm i
+            npm run build
+            aws s3 cp ./dist s3://udapeople-${CIRCLE_WORKFLOW_ID} --recursive
+
+      - destroy-environment
 workflows:
   default:
     jobs:
-      - build-frontend
-      - build-backend:
-          context: slack-secrets
+      # - build-frontend
+      # - build-backend:
+      #     context: slack-secrets
       # - test-frontend:
       #     requires: [build-frontend]
       # - test-backend:
@@ -226,11 +252,14 @@ workflows:
       #     requires: [build-backend]
       # - scan-frontend:
       #     requires: [build-frontend]
-      # - deploy-infrastructure:
+      - deploy-infrastructure
       #     requires: [test-frontend, test-backend, scan-frontend, scan-backend]
       #     filters:
       #       branches:
       #         only: [main]
       # - configure-infrastructure:
       #     requires: [deploy-infrastructure]
-      - run-migrations
+      # - run-migrations:
+      #     requires: [configure-infrastructure] 
+      - deploy-frontend:
+          requires: [deploy-infrastructure]
