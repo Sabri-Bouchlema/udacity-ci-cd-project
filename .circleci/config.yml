@@ -257,6 +257,7 @@ jobs:
       - run:
           name: Deploy backend
           command: |
+            tar -C backend -czvf artifact.tar.gz .
             ansible-playbook -i /tmp/.circleci/ansible/inventory.txt .circleci/ansible/deploy-backend.yml
       # - destroy-environment 
 
