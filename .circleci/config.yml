@@ -115,7 +115,7 @@ jobs:
       - run:
           name: Install required dependencies
           command: |
-            yum -y install tar gzip jq
+            yum -y install tar gzip
       - run:
           name: Ensure back-end infrastructure exists
           command: |
@@ -217,12 +217,14 @@ jobs:
       - image: amazon/aws-cli
     steps:
       - checkout
-      - restore_cache:
-          keys: [frontend-build]
       - run:
           name: Install dependencies
           command: |
+            yum -y install tar gzip
+            curl -sL https://rpm.nodesource.com/setup_13.x | bash -
             yum -y install nodejs
+      - restore_cache:
+          keys: [frontend-build]
       - run:
           name: Get backend url
           command: |
@@ -236,8 +238,8 @@ jobs:
             npm i
             npm run build
             aws s3 cp ./dist s3://udapeople-${CIRCLE_WORKFLOW_ID} --recursive
-
       - destroy-environment
+
 workflows:
   default:
     jobs:
