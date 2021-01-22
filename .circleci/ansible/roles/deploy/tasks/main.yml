@@ -14,6 +14,7 @@
 - name: Start backend
   shell: |
     cd /home/ubuntu
-    npm install
+    npm i
+    npm i ts-node
     npm run build
     pm2 start npm --no-automation --name "backend" -- run start
