@@ -11,6 +11,8 @@
   roles:
     - deploy
   environment:
+    ENVIRONMENT: "production"
+    NODE_ENV: "production"
     TYPEORM_HOST: "{{ lookup('env','TYPEORM_HOST') }}"
     TYPEORM_USERNAME: "{{ lookup('env','TYPEORM_USERNAME') }}"
     TYPEORM_PASSWORD: "{{ lookup('env','TYPEORM_PASSWORD') }}"
