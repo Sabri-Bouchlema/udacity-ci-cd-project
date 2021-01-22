@@ -12,6 +12,7 @@
     
 
 - name: Start backend
+  become: true
   shell: |
     cd /home/ubuntu
     npm i
