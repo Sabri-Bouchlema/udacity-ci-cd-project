@@ -20,7 +20,6 @@
     cd /home/ubuntu/backend
     npm install
     npm run build
-    npm run prestart:prod
 
 - name: Start PM2
   shell: |
