@@ -1,6 +1,16 @@
 ---
 
-- name: Copy backend dist files web server
+- name: Remove node_modules
+  file:
+    path: /root/project/backend/node_modules
+    state: absent
+
+- name: Remove dist
+  file:
+    path: /root/project/backend/dist
+    state: absent
+
+- name: Copy backend files
   copy:
     src: /root/project/backend
     dest: /home/ubuntu
