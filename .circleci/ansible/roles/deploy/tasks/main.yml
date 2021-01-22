@@ -1,20 +1,22 @@
 ---
 
-- name: Copy files to ec2 instance
+- name: Copy backend dist files web server
   copy:
-    src: /root/project/artifact.tar.gz
-    dest: /home/ubuntu/artifact.tar.gz
+    src: /root/project/backend
+    dest: /home/ubuntu
 
-- name: Extract files
+- name: Install dependencies
   shell: |
-    cd /home/ubuntu
-    tar xvzf artifact.tar.gz -C .
+    cd /home/ubuntu/backend
+    npm install
     
-
-- name: Start backend
-  become: true
+- name: Build backend
   shell: |
-    cd /home/ubuntu
-    npm i
+    cd /home/ubuntu/backend
     npm run build
-    pm2 start npm --no-automation --name "backend" -- run start
+    npm run prestart:prod
+
+- name: Start PM2
+  shell: |
+    cd /home/ubuntu/backend 
+    pm2 start npm --name backend -- start
