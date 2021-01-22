@@ -1,3 +1,4 @@
+
 ---
 - name: "install dependencies."
   become: true
@@ -28,19 +29,13 @@
   shell: |
     cd /home/ubuntu/backend
     tar xvzf artifact.tar.gz -C .
-
-- name: Install dependencies
-  shell: |
-    cd /home/ubuntu/backend
-    npm install
     
-- name: Build backend
+- name: Install dependencies and Build
   become: true
   shell: |
     cd /home/ubuntu/backend
     npm install
     npm run build
-
 - name: Start PM2
   shell: |
     cd /home/ubuntu/backend 
