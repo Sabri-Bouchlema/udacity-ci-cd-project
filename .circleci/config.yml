@@ -11,9 +11,25 @@ commands:
           name: Destroy environments
           when: on_fail
           command: |
+            aws s3 rm s3://udapeople-${CIRCLE_WORKFLOW_ID} --recursive
             aws cloudformation delete-stack --stack-name backend-${CIRCLE_WORKFLOW_ID}
             aws cloudformation delete-stack --stack-name frontend-${CIRCLE_WORKFLOW_ID}
 
+  revert-migrations:
+    description: Revert the last migration if successfully run in the current workflow.   
+    steps:
+      - run:
+          name: Revert migrations
+          when: on_fail
+          command: |
+            SUCCESS=$(curl -H "token: migration-result-${CIRCLE_WORKFLOW_ID}" --request GET https://api.memstash.io/values/migrationResult)
+            if(( $SUCCESS==1 )); 
+            then
+              cd ~/project/backend
+              npm install
+              npm run migrations:revert
+            fi
+  
 jobs:
   build-frontend:
     docker:
@@ -211,6 +227,7 @@ jobs:
             --request PUT \
             --data "$migrationResult" https://api.memstash.io/values/migrationResult
       - destroy-environment
+      - revert-migrations
 
   deploy-frontend:
     docker:
@@ -237,6 +254,7 @@ jobs:
             npm run build
             aws s3 cp ./dist s3://udapeople-${CIRCLE_WORKFLOW_ID} --recursive
       - destroy-environment
+      - revert-migrations
 
   deploy-backend:
     docker:
@@ -256,7 +274,8 @@ jobs:
           command: |
             tar -C backend -czvf artifact.tar.gz .
             ansible-playbook -i /tmp/.circleci/ansible/inventory.txt .circleci/ansible/deploy-backend.yml
-      - destroy-environment 
+      - destroy-environment
+      - revert-migrations
 
   smoke-test:
     docker:
@@ -283,7 +302,8 @@ jobs:
             else
               return 1
             fi
-      - destroy-environment 
+      - destroy-environment
+      - revert-migrations
 
 workflows:
   default:
