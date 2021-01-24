@@ -315,6 +315,17 @@ jobs:
           name: Update cloudfront distribution
           command: |
 
+            # fetch blue env WorkflowId from cloudformation
+            export OldWorkflowID=$(aws cloudformation list-exports --query "Exports[?Name==\`WorkflowID\`].Value" --no-paginate --output text)
+            echo "ID - ${OldWorkflowID}"
+
+            # Store OldWorkflowID in memstash
+            curl -H "Content-Type: text/plain" \
+            -H "token: old-workflow-id-${CIRCLE_WORKFLOW_ID}" \
+            --request PUT \
+            --data "$OldWorkflowID" https://api.memstash.io/values/old-workflow-id
+
+            # Update cloudfront
             aws cloudformation deploy \
             --template-file .circleci/files/cloudfront.yml \
             --stack-name udapeople-cloudfront \
@@ -334,19 +345,18 @@ jobs:
           command: |
 
             # fetch blue env WorkflowId from cloudformation
-            export OldWorkflowID=$(aws cloudformation list-exports --query "Exports[?Name==\`WorkflowID\`].Value" --no-paginate --output text)
+            OldWorkflowID=$(curl -H "token: old-workflow-id-${CIRCLE_WORKFLOW_ID}" --request GET https://api.memstash.io/values/old-workflow-id)
             echo "ID - ${OldWorkflowID}"
+
             # fetch stacknames which are in status CREATE_COMPLETE
             export STACKS=$(aws cloudformation list-stacks --query "StackSummaries[*].StackName" --stack-status-filter CREATE_COMPLETE --no-paginate --output text)
             echo "STACKS - ${STACKS[@]}"
 
             if [[ "${STACKS[@]}" =~ "${OldWorkflowID}" ]]
             then
-              echo "delete blue stack"
-              return 1
-              # aws s3 rm s3://udapeople-${OldWorkflowID} --recursive
-              # aws cloudformation delete-stack --stack-name backend-${OldWorkflowID}
-              # aws cloudformation delete-stack --stack-name frontend-${OldWorkflowID}
+              aws s3 rm s3://udapeople-${OldWorkflowID} --recursive
+              aws cloudformation delete-stack --stack-name backend-${OldWorkflowID}
+              aws cloudformation delete-stack --stack-name frontend-${OldWorkflowID}
             fi
             
 workflows:
@@ -363,11 +373,11 @@ workflows:
       #     requires: [build-backend]
       # - scan-frontend:
       #     requires: [build-frontend]
-      - deploy-infrastructure
-          # requires: [test-frontend, test-backend, scan-frontend, scan-backend]
-          # filters:
-          #   branches:
-          #     only: [main]
+      - deploy-infrastructure:
+          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
+          filters:
+            branches:
+              only: [main]
       - configure-infrastructure:
           requires: [deploy-infrastructure]
       - run-migrations:
@@ -376,10 +386,9 @@ workflows:
           requires: [run-migrations]
       - deploy-backend:
           requires: [run-migrations]
-      # - smoke-test:
-      #     requires: [deploy-backend, deploy-frontend]
-      - cloudfront-update:
+      - smoke-test:
           requires: [deploy-backend, deploy-frontend]
-          # requires: [smoke-test]
+      - cloudfront-update:
+          requires: [smoke-test]
       - cleanup:
           requires: [cloudfront-update]
